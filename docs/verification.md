@@ -1,4 +1,11 @@
-# Mutual fund edition verification — 15 October 2026
+# Ten-fund edition verification — 15 October 2026
+
+- All 28 automated tests pass. They check the five groups of two funds, the exact requested fund types, seeded daily NAVs, buy/sell accounting, and preservation of the previous edition's game and host settings.
+- The TypeScript/Vite production build passes. The generated offline shell includes the new interface.
+- Local browser preview shows ten funds in Explore Funds, their group labels, the five previous-day NAV points, and Buy/Sell controls. The longer fund names remain readable in the horizontally scrolling table.
+- The new edition uses `fincelerate-mutual-funds-v3`. The earlier eight-fund browser data stays at its original key; host settings carry forward, and old rankings stay separate.
+
+## Eight-fund edition verification (historical)
 
 - All 26 automated tests pass, including five locked daily NAVs per fund, portfolio accounting, redemption limits, scenario isolation, persistence and preservation of legacy equity data.
 - Browser verification: invested in 100 Durga Flexi Cap Fund units at ₹50 NAV. My holdings opened with ₹5,000 invested. On Day 2 the NAV became ₹49.79 and current value ₹4,979. Redeeming 40 units left 60 units, ₹3,000 invested cost and ₹2,987.40 current value. The holdings table reconciled exactly.

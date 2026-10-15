@@ -1,16 +1,18 @@
 export const CAPITAL = 10_000_000; // All money is integer paise.
 export const DAYS = 5;
 export const POINTS = 1; // Mutual funds have one simulated NAV per day.
-export const SCENARIO_VERSION = 'mutual-fund-v2';
+export const SCENARIO_VERSION = 'mutual-fund-v3';
 export const FUNDS = [
-  {symbol:'DURGA',name:'Durga Flexi Cap Fund',sector:'Flexi Cap Equity',start:5000,risk:'High',vol:.018,drift:.0003,color:'#6e72d9',icon:'cpu',description:'A fictional diversified equity fund investing across large, mid and small companies.'},
-  {symbol:'LAKSHMI',name:'Lakshmi Short Duration Fund',sector:'Debt',start:2500,risk:'Low',vol:.002,drift:.0001,color:'#b48b45',icon:'landmark',description:'A fictional debt fund holding shorter-duration bonds. Interest-rate and credit risks remain.'},
-  {symbol:'SARAS',name:'Saraswati Index Fund',sector:'Broad-market Equity',start:10000,risk:'High',vol:.012,drift:.0002,color:'#4388be',icon:'code',description:'A fictional index fund following a diversified basket of large-company equities.'},
-  {symbol:'KALI',name:'Kali Small Cap Fund',sector:'Small Cap Equity',start:3500,risk:'Very High',vol:.029,drift:0,color:'#ce8541',icon:'zap',description:'A fictional equity fund investing in smaller businesses with larger potential NAV swings.'},
-  {symbol:'PARVATI',name:'Parvati Conservative Hybrid Fund',sector:'Hybrid',start:2000,risk:'Medium',vol:.006,drift:.0001,color:'#459e91',icon:'heart',description:'A fictional mix of predominantly debt and a smaller equity allocation.'},
-  {symbol:'SHAKTI',name:'Shakti Mid Cap Fund',sector:'Mid Cap Equity',start:4000,risk:'Very High',vol:.022,drift:.0002,color:'#b3698d',icon:'car',description:'A fictional diversified portfolio of medium-sized companies, with higher equity risk.'},
-  {symbol:'ANNAP',name:'Annapurna Liquid Fund',sector:'Liquid / Debt',start:1000,risk:'Low',vol:.0008,drift:.0001,color:'#70a05c',icon:'wheat',description:'A fictional fund holding short-maturity money-market instruments. Low risk does not mean risk-free.'},
-  {symbol:'MAHISHA',name:'Mahishasura Sectoral Fund',sector:'Metals & Infrastructure Equity',start:3000,risk:'Very High',vol:.031,drift:-.0001,color:'#7c8797',icon:'factory',description:'A fictional concentrated equity fund exposed to the metals and infrastructure cycle.'},
+  {symbol:'LAKSHMI',name:'Lakshmi Short Duration Fund',category:'Debt',sector:'Short Duration Debt',start:2500,risk:'Low',vol:.002,drift:.0001,color:'#b48b45',icon:'landmark',description:'A fictional short-duration debt fund. Bond prices and credit quality can still affect NAV.'},
+  {symbol:'ANNAP',name:'Annapurna Liquid Fund',category:'Debt',sector:'Liquid Debt',start:1000,risk:'Low',vol:.0008,drift:.0001,color:'#70a05c',icon:'wheat',description:'A fictional liquid fund holding short-maturity instruments. Lower volatility does not mean risk-free.'},
+  {symbol:'SARAS',name:'Saraswati Equity Savings Fund',category:'Conservative Hybrid',sector:'Equity Savings',start:3000,risk:'Medium',vol:.005,drift:.0001,color:'#4388be',icon:'code',description:'A fictional equity savings mix using equity, debt and hedging to moderate market swings.'},
+  {symbol:'PARVATI',name:'Parvati Conservative Hybrid Fund',category:'Conservative Hybrid',sector:'Conservative Hybrid',start:2000,risk:'Medium',vol:.006,drift:.0001,color:'#459e91',icon:'heart',description:'A fictional hybrid fund with more debt and a smaller equity allocation.'},
+  {symbol:'SHAKTI',name:'Shakti Multi Asset Fund',category:'Aggressive Hybrid',sector:'Multi Asset',start:4000,risk:'High',vol:.01,drift:.0002,color:'#b3698d',icon:'car',description:'A fictional fund spreading investments across equity, debt and other asset classes.'},
+  {symbol:'MAHISHA',name:'Mahishasura Aggressive Hybrid Fund',category:'Aggressive Hybrid',sector:'Aggressive Hybrid',start:3000,risk:'High',vol:.014,drift:.0002,color:'#7c8797',icon:'factory',description:'A fictional hybrid fund with a larger equity allocation and a debt component.'},
+  {symbol:'KALI',name:'Kali Multi Cap Fund',category:'Equity',sector:'Multi Cap Equity',start:3500,risk:'Very High',vol:.023,drift:.0002,color:'#ce8541',icon:'zap',description:'A fictional equity fund investing across large, mid and small companies.'},
+  {symbol:'DURGA',name:'Durga Flexi Cap Fund',category:'Equity',sector:'Flexi Cap Equity',start:5000,risk:'High',vol:.018,drift:.0003,color:'#6e72d9',icon:'cpu',description:'A fictional flexible equity fund investing across company sizes.'},
+  {symbol:'INNOV',name:'Pragati Innovation Thematic Fund',category:'Special',sector:'Innovation Thematic',start:6000,risk:'Very High',vol:.029,drift:.0002,color:'#a866c7',icon:'zap',description:'A fictional concentrated theme fund focused on innovative businesses; its NAV can move sharply.'},
+  {symbol:'DYNAMIC',name:'Niyati Dynamic Asset Allocator Fund of Funds',category:'Special',sector:'Dynamic Asset Allocator Fund of Funds',start:4500,risk:'Medium',vol:.01,drift:.0001,color:'#6483aa',icon:'landmark',description:'A fictional fund of funds that changes its mix of underlying funds as market conditions shift.'},
 ] as const;
 export type Symbol = typeof FUNDS[number]['symbol'];
 export type Point = {index:number;day:number;time:string;price:number};
@@ -32,7 +34,7 @@ export function generateScenario(seed:string):Scenario {
   const news:News[][]=[];
   const shocks:Partial<Record<Symbol,number>>[]=[];
   for(let d=0;d<DAYS;d++){
-    const indexes=[Math.floor(random()*8)];indexes.push((indexes[0]+1+Math.floor(random()*7))%8);
+    const indexes=[Math.floor(random()*FUNDS.length)];indexes.push((indexes[0]+1+Math.floor(random()*(FUNDS.length-1)))%FUNDS.length);
     shocks[d]={};news[d]=indexes.map(index=>{
       const s=FUNDS[index]; const draw=d===0?.9:random(); const tone=draw<.4?'positive':draw<.8?'negative':'neutral';
       shocks[d][s.symbol]=(tone==='positive'?1:tone==='negative'?-1:0)*s.vol*(2+random()*3);

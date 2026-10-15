@@ -13,3 +13,5 @@
 .brand{gap:9px;letter-spacing:0;font-size:initial;font-weight:400}.brand-logo{display:block;width:clamp(138px,16vw,198px);max-height:59px;height:auto;object-fit:contain;background:#fff;border-radius:4px;padding:3px 6px}.brand small{display:block;align-self:center;font-size:7px;letter-spacing:1.7px;font-weight:400;color:#b3babd;margin:0;white-space:nowrap}
 @media(max-width:760px){.brand{gap:7px}.brand-logo{width:clamp(132px,38vw,170px);max-height:48px}.brand small{font-size:6px;letter-spacing:1px}}
 .holdings-view{grid-template-columns:minmax(0,1fr)}.holdings-view .day-card{display:none}.holdings-view .holdings-table{min-width:1080px}.holdings-view .watch-table th,.holdings-view .watch-table td{padding-left:12px;padding-right:12px}
+.fund-category{display:inline-block;border-radius:4px;padding:5px 7px;background:#eef2ee;color:#60796c;font-size:9px;white-space:nowrap}.edition-note{margin-top:12px;padding:10px 12px;border-left:2px solid #c9b374;background:#f8f6ed;color:#7d806e;font-size:10px;line-height:1.5}
+@media(max-width:760px){.watch-table{min-width:790px}}
