@@ -1,4 +1,14 @@
-# Verification — 14 October 2026
+# Mutual fund edition verification — 15 October 2026
+
+- All 26 automated tests pass, including five locked daily NAVs per fund, portfolio accounting, redemption limits, scenario isolation, persistence and preservation of legacy equity data.
+- Browser verification: invested in 100 Durga Flexi Cap Fund units at ₹50 NAV. My holdings opened with ₹5,000 invested. On Day 2 the NAV became ₹49.79 and current value ₹4,979. Redeeming 40 units left 60 units, ₹3,000 invested cost and ₹2,987.40 current value. The holdings table reconciled exactly.
+- Mutual funds have one daily NAV point; chart tooltips and controls use NAV, units, Invest and Redeem terminology. The simplified game uses whole units and immediate execution at displayed NAV; applicable NAV/settlement differences are stated in the app.
+- The previous portfolio section was reused and expanded, rather than duplicating it. Holdings also have a shortcut in the order panel and a fund count.
+- Old equity browser data is preserved under its original storage key. Host settings are carried forward; mutual fund rounds and rankings start separately.
+
+## Original equity edition verification (historical)
+
+Verification — 14 October 2026
 
 - 22 automated tests passed: seeded generation, all 800 points, volatility, frozen scenarios, revealed history, integer-paise buy/sell validation, partial cost basis, P/L reconciliation, day progression, final scoring, leaderboard ties/scenario isolation, recovery, stale writes, save failures, CTA URL validation and PIN hashing.
 - Production TypeScript/Vite build passed. The output is a static offline-capable app. Vite reports an advisory about the chart/animation bundle size (~247 kB gzipped); it does not prevent the build or offline play.

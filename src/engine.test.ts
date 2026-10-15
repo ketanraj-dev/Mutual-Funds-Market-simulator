@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { advance, CAPITAL, finish, generateScenario, newGame, quote, rankings, result, revealed, STOCKS, trade, valuation } from './engine';
+import { advance, CAPITAL, finish, generateScenario, newGame, quote, rankings, result, revealed, FUNDS, trade, valuation } from './engine';
 const scenario=generateScenario('test-market');
 const game=()=>newGame('Test player',scenario,'tournament','test-id');
-describe('locked market',()=>{
- it('has eight distinct series of exactly five days and twenty ticks per day',()=>{expect(Object.keys(scenario.prices)).toHaveLength(8);for(const s of STOCKS){const p=scenario.prices[s.symbol];expect(p).toHaveLength(100);expect(p[0].price).toBe(s.start);for(let d=1;d<=5;d++)expect(p.filter(t=>t.day===d)).toHaveLength(20);expect(p.every(t=>Number.isSafeInteger(t.price)&&t.price>0)).toBe(true);expect(p.some((t,i)=>i>0&&t.price>p[i-1].price)).toBe(true);expect(p.some((t,i)=>i>0&&t.price<p[i-1].price)).toBe(true);}expect(new Set(Object.values(scenario.prices).map(p=>JSON.stringify(p))).size).toBe(8);});
+describe('locked daily mutual fund NAVs',()=>{
+ it('has eight distinct series of exactly five days and one NAV per day',()=>{expect(Object.keys(scenario.prices)).toHaveLength(8);for(const s of FUNDS){const p=scenario.prices[s.symbol];expect(p).toHaveLength(5);expect(p[0].price).toBe(s.start);for(let d=1;d<=5;d++)expect(p.filter(t=>t.day===d)).toHaveLength(1);expect(p.every(t=>Number.isSafeInteger(t.price)&&t.price>0)).toBe(true);}expect(new Set(Object.values(scenario.prices).map(p=>JSON.stringify(p))).size).toBe(8);});
  it('repeats by seed and varies with a different seed',()=>{expect(generateScenario('test-market')).toEqual(scenario);expect(generateScenario('different')).not.toEqual(scenario);});
  it('is deeply frozen and independent of trades',()=>{const before=JSON.stringify(scenario);let g=trade(game(),'DURGA','buy',1);g=trade(g,'DURGA','sell',1);expect(g.scenario).toBe(scenario);expect(()=>{scenario.prices.DURGA[0].price=1;}).toThrow();expect(JSON.stringify(scenario)).toBe(before);});
- it('reveals only current and past days without changing history',()=>{const g=game(),past=revealed(g,'KALI');expect(past).toHaveLength(20);const next=advance(g);expect(revealed(next,'KALI')).toHaveLength(40);expect(revealed(next,'KALI').slice(0,20)).toEqual(past);expect(g.day).toBe(1);});
- it('keeps low-risk movement quieter across many seeds',()=>{let low=0,high=0;for(let n=0;n<25;n++){const s=generateScenario(String(n));for(let i=1;i<100;i++){low+=Math.abs(Math.log(s.prices.ANNAP[i].price/s.prices.ANNAP[i-1].price));high+=Math.abs(Math.log(s.prices.KALI[i].price/s.prices.KALI[i-1].price));}}expect(high).toBeGreaterThan(low*2);});
+ it('reveals only current and past days without changing history',()=>{const g=game(),past=revealed(g,'KALI');expect(past).toHaveLength(1);const next=advance(g);expect(revealed(next,'KALI')).toHaveLength(2);expect(revealed(next,'KALI').slice(0,1)).toEqual(past);expect(g.day).toBe(1);});
+ it('keeps low-risk movement quieter across many seeds',()=>{let low=0,high=0;for(let n=0;n<25;n++){const s=generateScenario(String(n));for(let i=1;i<5;i++){low+=Math.abs(Math.log(s.prices.ANNAP[i].price/s.prices.ANNAP[i-1].price));high+=Math.abs(Math.log(s.prices.KALI[i].price/s.prices.KALI[i-1].price));}}expect(high).toBeGreaterThan(low*2);});
 });
 describe('precision-safe trading',()=>{
  it('starts with exactly one lakh',()=>{expect(game().cash).toBe(CAPITAL);expect(valuation(game()).total).toBe(CAPITAL);});
@@ -23,3 +23,9 @@ describe('progression and results',()=>{
  it('sorts by value, cash, completion and isolates scenarios',()=>{const base={name:'A',scenarioId:scenario.id,value:CAPITAL,cash:100,completedAt:1000,returnPct:0};const rs=[{...base,id:'late',completedAt:2000},{...base,id:'early'},{...base,id:'cash',cash:200},{...base,id:'value',value:CAPITAL+1},{...base,id:'other',scenarioId:'other',value:999999999}];expect(rankings(rs,scenario.id).map(r=>r.id)).toEqual(['value','cash','early','late']);expect(rs[0].id).toBe('late');});
  it('restores exact data through JSON persistence',()=>{const g=trade(advance(game()),'KALI','buy',10);const restored=JSON.parse(JSON.stringify(g));expect(valuation(restored)).toEqual(valuation(g));expect(restored.scenario).toEqual(g.scenario);});
 });
+
+ describe('mutual fund holdings',()=>{
+  it('tracks units, remaining invested amount and current NAV after redemption',()=>{let g=trade(game(),'DURGA','buy',100);expect(g.holdings.DURGA).toBe(100);expect(g.costs.DURGA).toBe(500000);g=advance(g);const nav=quote(g,'DURGA');g=trade(g,'DURGA','sell',40);expect(g.holdings.DURGA).toBe(60);expect(g.costs.DURGA).toBe(300000);expect(valuation(g).invested).toBe(nav*60);expect(g.cash).toBe(CAPITAL-500000+nav*40);});
+  it('clears a fund from owned holdings after full redemption',()=>{let g=trade(game(),'PARVATI','buy',20);g=trade(g,'PARVATI','sell',20);expect(g.holdings.PARVATI).toBe(0);expect(g.costs.PARVATI).toBe(0);expect(valuation(g).invested).toBe(0);});
+  it('keeps the mutual fund board separate from equity scenarios',()=>{expect(scenario.id).toBe('mutual-fund-v2:test-market');expect(rankings([{id:'old',name:'Equity player',scenarioId:'market-v1:test-market',value:CAPITAL,cash:CAPITAL,completedAt:1,returnPct:0}],scenario.id)).toEqual([]);});
+ });

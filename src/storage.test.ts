@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { advance, finish, generateScenario, newGame, result, trade } from './engine';
-import { defaults, hashPin, KEY, load, safeUrl, save } from './storage';
+import { defaults, hashPin, KEY, LEGACY_KEY, load, safeUrl, save } from './storage';
 const data=new Map<string,string>();
 beforeEach(()=>{data.clear();vi.stubGlobal('localStorage',{getItem:(k:string)=>data.get(k)??null,setItem:(k:string,v:string)=>data.set(k,v)});});
 describe('persistence and event settings',()=>{
@@ -11,4 +11,10 @@ describe('persistence and event settings',()=>{
  it('does not pretend a failed write was saved',()=>{vi.stubGlobal('localStorage',{getItem:()=>null,setItem:()=>{throw Error('quota exceeded');}});expect(()=>save(defaults())).toThrow(/quota/);});
  it('only permits web destinations without embedded credentials',()=>{expect(safeUrl('https://example.org/path')).toBe(true);expect(safeUrl('javascript:alert(1)')).toBe(false);expect(safeUrl('https://a:b@example.org')).toBe(false);expect(safeUrl('invalid')).toBe(false);});
  it('hashes the PIN with a per-installation salt',async()=>{const hash=await hashPin('123456','salt-one');expect(hash).toHaveLength(64);expect(hash).not.toContain('123456');expect(await hashPin('123456','salt-two')).not.toBe(hash);});
+});
+
+it('preserves equity data and host settings without relabelling old holdings',()=>{
+ const legacy={...defaults(),game:newGame('Old player',generateScenario('old'),'tournament','legacy'),results:[{id:'legacy-score',scenarioId:'market-v1:old',name:'Old player',cash:1,value:10000000,completedAt:1,returnPct:0}]};
+ legacy.settings.ctaUrl='https://example.org/approved';legacy.settings.pinHash='existing-hash';legacy.settings.salt='existing-salt';
+ const raw=JSON.stringify(legacy);data.set(LEGACY_KEY,raw);const fresh=load();expect(fresh.game).toBeNull();expect(fresh.results).toEqual([]);expect(fresh.settings).toEqual(legacy.settings);save(fresh);expect(data.get(LEGACY_KEY)).toBe(raw);expect(data.has(KEY)).toBe(true);
 });
