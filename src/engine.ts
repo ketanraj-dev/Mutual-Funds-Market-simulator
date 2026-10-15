@@ -15,7 +15,7 @@ export const FUNDS = [
 export type Symbol = typeof FUNDS[number]['symbol'];
 export type Point = {index:number;day:number;time:string;price:number};
 export type News = {symbol:Symbol;tone:'positive'|'negative'|'neutral';text:string};
-export type Scenario = {id:string;seed:string;prices:Record<Symbol,Point[]>;news:News[][]};
+export type Scenario = {id:string;seed:string;prices:Record<Symbol,Point[]>;history:Record<Symbol,Point[]>;news:News[][]};
 export type Trade = {id:string;day:number;symbol:Symbol;side:'buy'|'sell';quantity:number;price:number;realized:number};
 export type Game = {id:string;name:string;scenario:Scenario;mode:'tournament'|'practice';day:number;cash:number;holdings:Record<Symbol,number>;costs:Record<Symbol,number>;trades:Trade[];finishedAt:number|null};
 export type Result = {id:string;name:string;scenarioId:string;value:number;cash:number;completedAt:number;returnPct:number};
@@ -41,6 +41,9 @@ export function generateScenario(seed:string):Scenario {
     });
   }
   const prices={} as Scenario['prices'];
+  const previousDays={} as Scenario['history'];
+  const historicalRandom=seeded(`${seed}:previous-days-v1`);
+  const historicalNormal=()=>Math.sqrt(-2*Math.log(Math.max(historicalRandom(),.000001)))*Math.cos(2*Math.PI*historicalRandom());
   for(const s of FUNDS){
     let price:number=s.start;const history:Point[]=[];
     for(let d=0;d<DAYS;d++){
@@ -57,8 +60,17 @@ export function generateScenario(seed:string):Scenario {
       }
     }
     prices[s.symbol]=history;
+    let previous:number=s.start;
+    const priorPrices=Array<number>(5);
+    priorPrices[4]=s.start;
+    for(let i=3;i>=0;i--){
+      const change=Math.max(-.12,Math.min(.12,s.drift+(historicalRandom()-.5)*.0015+historicalNormal()*s.vol*(historicalRandom()<.28?.3:1)));
+      previous=Math.max(Math.round(s.start*.2),Math.min(s.start*4,Math.round(previous/Math.exp(change))));
+      priorPrices[i]=previous;
+    }
+    previousDays[s.symbol]=priorPrices.map((price,index)=>({index,day:index-4,time:'Previous day',price}));
   }
-  return freeze({id:`${SCENARIO_VERSION}:${seed}`,seed,prices,news});
+  return freeze({id:`${SCENARIO_VERSION}:${seed}`,seed,prices,history:previousDays,news});
 }
 export const emptyPositions=()=>Object.fromEntries(FUNDS.map(s=>[s.symbol,0])) as Record<Symbol,number>;
 export function newGame(name:string,scenario:Scenario,mode:Game['mode'],id:string=crypto.randomUUID()):Game {
@@ -82,7 +94,7 @@ export function trade(g:Game,symbol:Symbol,side:'buy'|'sell',quantity:number):Ga
   const price=quote(g,symbol),amount=price*quantity;
   if(!Number.isSafeInteger(amount))throw Error('Quantity is too large.');
   if(side==='buy' && amount>g.cash)throw Error('Not enough available cash for this order.');
-  if(side==='sell' && quantity>g.holdings[symbol])throw Error('You cannot redeem more fund units than you own.');
+  if(side==='sell' && quantity>g.holdings[symbol])throw Error('You cannot sell more fund units than you own.');
   const removedCost=side==='sell'?Math.round(g.costs[symbol]*quantity/g.holdings[symbol]):0;
   return {...g,cash:g.cash+(side==='buy'?-amount:amount),holdings:{...g.holdings,[symbol]:g.holdings[symbol]+(side==='buy'?quantity:-quantity)},costs:{...g.costs,[symbol]:g.costs[symbol]+(side==='buy'?amount:-removedCost)},trades:[...g.trades,{id:`${g.id}-${g.trades.length}`,symbol,side,quantity,price,day:g.day,realized:side==='sell'?amount-removedCost:0}]};
 }
@@ -91,4 +103,4 @@ export function finish(g:Game,time=Date.now()):Game {if(g.day!==DAYS)throw Error
 export function result(g:Game):Result {if(g.finishedAt===null)throw Error('Finish this challenge first.');return {id:g.id,name:g.name,scenarioId:g.scenario.id,value:valuation(g).total,cash:g.cash,completedAt:g.finishedAt,returnPct:valuation(g).percent};}
 export function rankings(results:Result[],scenarioId:string){return results.filter(r=>r.scenarioId===scenarioId).sort((a,b)=>b.value-a.value||b.cash-a.cash||a.completedAt-b.completedAt||a.id.localeCompare(b.id));}
 export function title(percent:number){return percent>=20?'Market Maharaja':percent>=10?'Investment Champion':percent>=3?'Smart Investor':percent>=0?'Market Explorer':'Future Market Pro';}
-export function insight(g:Game){const symbols=new Set(g.trades.filter(t=>t.side==='buy').map(t=>t.symbol));return symbols.size>=4?'You explored several fund categories. Different funds can hold overlapping assets. Diversification can help spread risk, though it cannot prevent every loss.':symbols.size===0?'You stayed in cash. It preserves your virtual capital here, but real-world cash also faces inflation.':g.trades.length>12?'Frequent mutual fund redemptions can involve exit loads and taxes in real investing. This game omits them.':'Short-term markets are unpredictable. A longer horizon and diversification can help you manage uncertainty.';}
+export function insight(g:Game){const symbols=new Set(g.trades.filter(t=>t.side==='buy').map(t=>t.symbol));return symbols.size>=4?'You explored several fund categories. Different funds can hold overlapping assets. Diversification can help spread risk, though it cannot prevent every loss.':symbols.size===0?'You stayed in cash. It preserves your virtual capital here, but real-world cash also faces inflation.':g.trades.length>12?'Frequent mutual fund sales can involve exit loads and taxes in real investing. This game omits them.':'Short-term markets are unpredictable. A longer horizon and diversification can help you manage uncertainty.';}
